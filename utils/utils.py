@@ -28,8 +28,6 @@ def init_dataloaders(datasets, info_file_path, val_ratio=0.2, batch_size=BATCH_S
     print('Prepare DataLoaders...')
 
     dataset, test_dataset = datasets
-    # dataset = datasets.MNIST(root='./data', train=True, transform=transform, download=True)
-    # test_dataset = datasets.MNIST(root='./data', train=False, transform=transform, download=True)
 
     classes = dataset.classes
 
