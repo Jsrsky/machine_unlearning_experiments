@@ -54,4 +54,4 @@ def init_dataloaders(datasets, info_file_path, val_ratio=0.2, batch_size=BATCH_S
 
     print('Done preparing DataLoaders.')
 
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader, test_loader, classes
