@@ -6,12 +6,13 @@ import seaborn as sb
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 from matplotlib import pyplot as plt
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from utils.utils import DEVICE
 
 def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10):
 
 
-    best_val_accuracy = 0
+    best_val_accuracy = 0.0
+    best_model_path = f'{model_name}_model.pth'
 
 
     history = {
@@ -70,7 +71,7 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
 
         with torch.inference_mode():
 
-            for inputs, labels in val_loader:
+            for inputs, labels in tqdm(val_loader, desc=f"Evaluating on validation set...)"):
                 inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
 
                 outputs = model(inputs)
@@ -96,7 +97,8 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
         # Save the best model
         if val_accuracy > best_val_accuracy:
             best_val_accuracy = val_accuracy
-            torch.save(model.state_dict(), f'{model_name}_model.pth')
+            torch.save(model.state_dict(), best_model_path)
+            print(f"Epoch {epoch + 1}: New best validation accuracy: {best_val_accuracy:.4f}. Model saved to {best_model_path}.")
 
     with open(f'{model_name}_history.json', 'w') as f:
         json.dump(history, f)
@@ -106,29 +108,29 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
 
 
 def test_model(model, model_name, model_path, test_loader):
-    print(f"Loading and testing model: {model_name}")
 
-    model.load_state_dict(torch.load(model_path, weights_only=True))
+    print(f"Loading and testing model: {model_name}")
+    model.load_state_dict(torch.load(model_path, weights_only=True, map_location=DEVICE))
 
     model.eval()
 
-    test_preds = []
-    test_labels = []
+    predictions = []
+    true_labels = []
 
     with torch.inference_mode():
-        for inputs, labels in tqdm(test_loader, desc="Evaluating Model"):
+        for inputs, labels in tqdm(test_loader, desc=f"Evaluating model: {model_path}"):
             inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
 
             outputs = model(inputs)
 
             _, preds = torch.max(outputs, 1)
 
-            test_preds.extend(preds.cpu().numpy().tolist())
-            test_labels.extend(labels.cpu().numpy().tolist())
+            predictions.extend(preds.cpu().numpy().tolist())
+            true_labels.extend(labels.cpu().numpy().tolist())
 
     results = {
-        "test_labels": [test_labels],
-        "test_preds": [test_preds]
+        "predictions": [predictions],
+        "true_labels": [true_labels]
     }
 
     with open(f"{model_name}_predictions.json", "w") as f:
@@ -170,16 +172,16 @@ def show_metrics(predictions_path, classes, model_name):
     with open(predictions_path, 'r') as f:
         data = json.load(f)
 
-
-    test_labels = np.array(data['test_labels']).flatten().tolist()
-    test_preds = np.array(data['test_preds']).flatten().tolist()
+    predictions = np.array(data['predictions']).flatten().tolist()
+    true_labels = np.array(data['true_labels']).flatten().tolist()
+    
 
     # Metrics calculation
-    accuracy = accuracy_score(test_labels, test_preds)
-    precision = precision_score(test_labels, test_preds, average='weighted')
-    recall = recall_score(test_labels, test_preds, average='weighted')
-    f1 = f1_score(test_labels, test_preds, average='weighted')
-    cm = confusion_matrix(test_labels, test_preds)
+    accuracy = accuracy_score(true_labels, predictions)
+    precision = precision_score(true_labels, predictions, average='weighted')
+    recall = recall_score(true_labels, predictions, average='weighted')
+    f1 = f1_score(true_labels, predictions, average='weighted')
+    cm = confusion_matrix(true_labels, predictions)
 
 
     # Display metrics
