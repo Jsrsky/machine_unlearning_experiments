@@ -14,7 +14,6 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
     best_val_accuracy = 0.0
     best_model_path = f'{model_name}_model.pth'
 
-
     history = {
         "train_loss": [],
         "train_accuracy": [],
