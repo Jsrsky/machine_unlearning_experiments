@@ -6,7 +6,7 @@ import seaborn as sb
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 from matplotlib import pyplot as plt
 
-from utils.utils import DEVICE
+from utils.utils import save_model, DEVICE
 
 def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10):
 
@@ -96,7 +96,7 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
         # Save the best model
         if val_accuracy > best_val_accuracy:
             best_val_accuracy = val_accuracy
-            torch.save(model.state_dict(), best_model_path)
+            save_model(model, best_model_path)
             print(f"Epoch {epoch + 1}: New best validation accuracy: {best_val_accuracy:.4f}. Model saved to {best_model_path}.")
 
     with open(f'{model_name}_history.json', 'w') as f:
