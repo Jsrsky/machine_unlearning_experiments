@@ -40,3 +40,7 @@ def select_samples_to_unlearn(data_splits_file, unlearn_samples_output_file, unl
         json.dump(unlearn_indices, f)
 
     print(f"Unlearn indices saved to {unlearn_samples_output_file}")
+
+
+def save_model(model, save_path):
+    torch.save(model.state_dict(), save_path)

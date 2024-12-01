@@ -1,10 +1,10 @@
 import os
 import json
-import torch
 import numpy as np
 from pathlib import Path
 
 from utils.train_test_metrics import train_model, test_model
+from utils.utils import save_model
 
 def sisa_train(dataloaders, num_epochs, save_models_metrics_dir, init_model_func, learning_rate=0.001):
 
@@ -44,7 +44,7 @@ def sisa_train(dataloaders, num_epochs, save_models_metrics_dir, init_model_func
                 )
 
         shard_model_path = f"./{save_path}/{shard_id}_final_model.pth"
-        torch.save(model.state_dict(), shard_model_path)
+        save_model(model, shard_model_path)
         print(f"Saved final shard model to {shard_model_path}")
         
 def sisa_test(dataloaders, saved_models_metrics_dir, init_model_func, clear_solo_models_preds=True):
@@ -140,7 +140,7 @@ def retrain_sisa_framework(dataloaders, affected_shards, num_epochs, save_models
 
         # Save the final model for the shard
         shard_model_path = f"./{save_path}/{shard_id}_final_model.pth"
-        torch.save(model.state_dict(), shard_model_path)
+        save_model(model, shard_model_path)
         print(f"Saved updated model for {shard_id} to {shard_model_path}")
 
 

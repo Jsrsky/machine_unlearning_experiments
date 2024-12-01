@@ -39,3 +39,16 @@ def init_model_cnn(learning_rate = 0.001):
     print(f"Model ID: {id(model)}, Optimizer ID: {id(optimizer)}, Criterion ID: {id(criterion)}")
 
     return model, model_name, criterion, optimizer, transform
+
+def load_model_cnn(model_pth_path):
+    print('Load model...')
+
+    model, model_name, criterion, optimizer, transform = init_model_cnn();
+
+    model.load_state_dict(torch.load(model_pth_path, weights_only=True, map_location=DEVICE))
+     
+    print('Done loading model.')
+
+    return model, model_name, criterion, optimizer, transform
+   
+
