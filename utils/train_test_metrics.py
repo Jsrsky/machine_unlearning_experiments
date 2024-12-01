@@ -70,7 +70,7 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
 
         with torch.inference_mode():
 
-            for inputs, labels in tqdm(val_loader, desc=f"Evaluating on validation set...)"):
+            for inputs, labels in tqdm(val_loader, desc=f"Evaluating on validation set..."):
                 inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
 
                 outputs = model(inputs)
