@@ -9,7 +9,7 @@ def init_dataloaders(datasets, info_file_path, val_ratio=0.2, batch_size=32):
 
     dataset, test_dataset = datasets
 
-    classes = dataset.classes
+    classes = test_dataset.classes
 
     val_size = int(val_ratio * len(dataset))
     train_size = len(dataset) - val_size
