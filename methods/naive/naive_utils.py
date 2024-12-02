@@ -66,7 +66,7 @@ def update_splits_after_unlearning(data_splits_file, unlearn_samples_file, outpu
 
 
 
-def recreate_dataloaders(data_splits_file, dataset, batch_size=32):
+def recreate_dataloaders(data_splits_file, datasets, batch_size=32):
 
     print('Recreating DataLoaders...')
     
@@ -74,7 +74,8 @@ def recreate_dataloaders(data_splits_file, dataset, batch_size=32):
     with open(data_splits_file, "r") as f:
         splits = json.load(f)
 
-    classes = dataset.classes
+    dataset, test_dataset = datasets
+    classes = test_dataset.classes
 
     # Extract indices
     train_indices = [entry["index"] for entry in splits["train_indices"]]
@@ -84,8 +85,10 @@ def recreate_dataloaders(data_splits_file, dataset, batch_size=32):
     # Create subsets
     train_dataset = Subset(dataset, train_indices)
     val_dataset = Subset(dataset, val_indices)
-    test_dataset = Subset(dataset, test_indices)
 
+    if not (len(test_indices) == len(test_dataset) and all(idx == i for i, idx in enumerate(test_indices))):
+        test_dataset = Subset(test_dataset, test_indices)
+        
     # Create dataloaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
