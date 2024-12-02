@@ -88,6 +88,8 @@ def recreate_sisa_dataloaders(datasets, info_file_path, batch_size=32, val_ratio
 
     dataset, test_dataset = datasets
 
+    classes = test_dataset.classes
+
     with open(info_file_path, 'r') as f:
         sisa_structure = json.load(f)
 
@@ -122,7 +124,7 @@ def recreate_sisa_dataloaders(datasets, info_file_path, batch_size=32, val_ratio
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     dataloaders["test"] = test_loader
 
-    return dataloaders
+    return dataloaders, classes
 
 
 def update_sisa_structure(unlearn_samples_path, sisa_structure_path, updated_structure_path, deleted_samples_path):
@@ -238,7 +240,7 @@ def weighted_voting(true_labels, predictions, weights):
     return aggregated_predictions.tolist()
 
 
-def evaluate_aggregated_model(results):
+def evaluate_aggregated_model(results, classes):
     """
     Evaluate aggregated predictions and print metrics, confusion matrix.
 
@@ -289,7 +291,7 @@ def evaluate_aggregated_model(results):
     # Generate and display confusion matrix
     cm = confusion_matrix(true_labels, aggregated_predictions)
     plt.figure(figsize=(10, 8))
-    sb.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=range(10), yticklabels=range(10))
+    sb.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=classes, yticklabels=classes)
     plt.xlabel("Predicted Labels")
     plt.ylabel("True Labels")
     plt.title("Confusion Matrix of Aggregated Model")
