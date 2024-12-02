@@ -5,19 +5,19 @@ import torch.optim as optim
 
 from utils.train_test_metrics import DEVICE
 
-def init_model_resnet50(learning_rate=0.001, fc_output = 10):
+def init_model_effnetb0(learning_rate=0.001, fc_output = 3):
     print('Init model...')
 
     torch.cuda.empty_cache()
 
-    weights = models.ResNet50_Weights.DEFAULT
+    weights = models.EfficientNet_B0_Weights.DEFAULT
     transform = weights.transforms()
 
-    model = models.resnet50(weights=weights)
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, fc_output)
+    model = models.efficientnet_b0(weights=weights)
+    num_features = model.classifier[1].in_features
+    model.classifier[1] = nn.Linear(num_features, fc_output) 
 
-    model_name = 'ResNet50_CIFAR10'
+    model_name = 'EffNetB0_AFHQ'
 
     model = model.to(DEVICE)
     criterion = nn.CrossEntropyLoss()
