@@ -21,7 +21,7 @@ def init_dataloaders(datasets, val_ratio=0.2, batch_size=32, info_file_path=None
         splits = {
             "train_indices": [{"index": idx, "class": dataset[idx][1]} for idx in train_dataset.indices],
             "val_indices": [{"index": idx, "class": dataset[idx][1]} for idx in val_dataset.indices],
-            "test_indices": [{"index": idx, "class": dataset[idx][1]} for idx in range(len(test_dataset))]
+            "test_indices": [{"index": idx, "class": test_dataset[idx][1]} for idx in range(len(test_dataset))]
         }
         
         with open(info_file_path, "w") as f:
