@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, Subset, random_split
 
 from utils.utils import set_seed
 
-def init_dataloaders(datasets, info_file_path, val_ratio=0.2, batch_size=32):
+def init_dataloaders(datasets, val_ratio=0.2, batch_size=32, info_file_path=None):
 
     print('Prepare DataLoaders...')
 
@@ -17,14 +17,15 @@ def init_dataloaders(datasets, info_file_path, val_ratio=0.2, batch_size=32):
     set_seed()
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    splits = {
-        "train_indices": [{"index": idx, "class": dataset[idx][1]} for idx in train_dataset.indices],
-        "val_indices": [{"index": idx, "class": dataset[idx][1]} for idx in val_dataset.indices],
-        "test_indices": [{"index": idx, "class": dataset[idx][1]} for idx in range(len(test_dataset))]
-    }
-    
-    with open(info_file_path, "w") as f:
-        json.dump(splits, f)
+    if info_file_path is not None:
+        splits = {
+            "train_indices": [{"index": idx, "class": dataset[idx][1]} for idx in train_dataset.indices],
+            "val_indices": [{"index": idx, "class": dataset[idx][1]} for idx in val_dataset.indices],
+            "test_indices": [{"index": idx, "class": dataset[idx][1]} for idx in range(len(test_dataset))]
+        }
+        
+        with open(info_file_path, "w") as f:
+            json.dump(splits, f)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
