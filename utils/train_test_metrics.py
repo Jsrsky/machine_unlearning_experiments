@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 from utils.utils import save_model, DEVICE
 
-def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10):
+def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10, influence_sigma=1e-3):
 
 
     best_val_accuracy = 0.0
@@ -41,6 +41,14 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
             outputs = model(inputs)
 
             loss = criterion(outputs, labels)
+
+            # Influence noise
+            if influence_sigma is not None:
+                theta_vec = torch.cat([p.view(-1) for p in model.parameters()])
+                b = torch.randn_like(theta_vec, device=DEVICE) #Sample b from a Normal(0, I) distribution
+                dot_bt_theta = torch.dot(b, theta_vec) #Dot product b^T theta
+                noise_term = (influence_sigma / len(train_loader.dataset)) * dot_bt_theta # Scale by (sigma / |D|)
+                loss += noise_term
 
             # Backward pass and optimize
             loss.backward()
