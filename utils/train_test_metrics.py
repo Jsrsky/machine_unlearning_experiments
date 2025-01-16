@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 from utils.utils import save_model, DEVICE
 
-def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10, influence_sigma=1e-3):
+def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10, influence_sigma=None):
 
 
     best_val_accuracy = 0.0
