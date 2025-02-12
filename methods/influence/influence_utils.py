@@ -1,6 +1,6 @@
 import json
 
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 from loguru import logger
 import scipy.sparse.linalg as spla
 import torch
@@ -101,7 +101,7 @@ def compute_hvp_vectorized(model: nn.Module, loss_fn, data_loader: DataLoader, v
     total_samples = 0
     num_batches = len(data_loader)
 
-    logger.info("Starting HVP computation over {} batches.", num_batches)
+    # logger.info("Starting HVP computation over {} batches.", num_batches)
 
     for batch_idx, batch in enumerate(tqdm(data_loader, desc="HVP Batches"), 1):
         inputs, targets = batch
@@ -122,10 +122,7 @@ def compute_hvp_vectorized(model: nn.Module, loss_fn, data_loader: DataLoader, v
         flat_hvp = torch.cat([h.reshape(-1) for h in hvp]).detach()
         hvp_total += flat_hvp * batch_size
 
-        # logger.debug("Processed HVP batch {}/{}: batch_size={}, cumulative_samples={}",
-        #              batch_idx, num_batches, batch_size, total_samples)
-
-    logger.info("Completed HVP computation over {} samples.", total_samples)
+    # logger.info("Completed HVP computation over {} samples.", total_samples)
     return hvp_total / total_samples
 
 
@@ -182,8 +179,6 @@ def influence_unlearn(
         delta_np, info = spla.cg(linear_operator, b_np, tol=tol, maxiter=cg_iterations)
         if info != 0:
             logger.warning("CG solver did not converge for batch {}/{} (info={}).", batch_idx, num_unlearn_batches, info)
-        # else:
-        #     logger.debug("CG solver converged for batch {}/{}.", batch_idx, num_unlearn_batches)
 
         # Convert the solution back to a PyTorch tensor.
         delta = torch.from_numpy(delta_np).to(device)
@@ -193,6 +188,6 @@ def influence_unlearn(
         new_flat_params = flat_params + delta
         vector_to_parameters(new_flat_params, model.parameters())
 
-        # logger.info("Processed unlearn batch {}/{}.", batch_idx, num_unlearn_batches)
+        logger.info("Processed unlearn batch {}/{}.", batch_idx, num_unlearn_batches)
     logger.info("Completed influence unlearning.")
     return model
