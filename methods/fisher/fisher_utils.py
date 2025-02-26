@@ -67,7 +67,7 @@ def compute_fisher_on_subset(model, criterion, dataset_subset, batch_size):
 
     return fisher_diag
 
-def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, sigma, deletion_batch_size, compute_batch_size):
+def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, sigma, deletion_batch_size, compute_batch_size, eps, max_norm):
     """
     Implements the iterative Fisher unlearning procedure following theory:
     
@@ -79,6 +79,7 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
       - sigma: noise parameter σ.
       - deletion_batch_size: desired mini-batch size for deletion (m′). E.g., 1000.
       - compute_batch_size: batch size used when computing gradients/Fisher (BATCH_SIZE).
+      - eps: for numerical stability
     
     Procedure:
       1. Let current_indices = set(range(len(full_dataset))).
@@ -88,7 +89,6 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
       5. Compute Δ_rem and diagonal Fisher F on D' and update model:
              θ ← θ − F⁻¹ Δ_rem + σ · F^(–1/4) · ε.
     """
-    eps = 1e-8  # for numerical stability
     full_size = len(full_dataset)
     current_indices = set(range(full_size))
 
@@ -110,16 +110,28 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
         # Compute the average gradient and diagonal Fisher on D'
         grad_dict = compute_gradient_on_subset(model, criterion, dataset_remaining, compute_batch_size)
         fisher_diag = compute_fisher_on_subset(model, criterion, dataset_remaining, compute_batch_size)
-        
         # Update model parameters using the Newton correction and noise injection
         with torch.no_grad():
-            total_grad_norm = 0.0
+            # First, compute and clip gradients, and monitor norms
+            total_grad_norm_before = 0.0
+            total_grad_norm_after = 0.0
+            for name in grad_dict:
+                norm_before = grad_dict[name].norm(2)
+                total_grad_norm_before += norm_before.item()
+                if norm_before > max_norm:
+                    grad_dict[name] = grad_dict[name] * (max_norm / norm_before)
+                norm_after = grad_dict[name].norm(2)
+                total_grad_norm_after += norm_after.item()
+            
+            print(f"Iteration {i+1}: Total gradient norm before clipping = {total_grad_norm_before:.4f}")
+            print(f"Iteration {i+1}: Total gradient norm after clipping  = {total_grad_norm_after:.4f}")
+            
+            # Now, update model parameters using the clipped gradients and monitor the Newton update norm
             total_update_norm = 0.0
             for name, param in model.named_parameters():
                 if param.requires_grad:
                     inv_fisher = (fisher_diag[name] + eps).pow(-1)
                     newton_update = inv_fisher * grad_dict[name]
-                    total_grad_norm += grad_dict[name].norm(2).item()
                     total_update_norm += newton_update.norm(2).item()
                     param.data = param.data - newton_update
 
@@ -127,7 +139,7 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
                     noise = torch.randn_like(param.data)
                     param.data = param.data + sigma * inv_fisher_quarter * noise
 
-            print(f"Iteration {i+1}: Total gradient norm = {total_grad_norm:.4f}, Total Newton update norm = {total_update_norm:.4f}")
+            print(f"Iteration {i+1}: Total Newton update norm = {total_update_norm:.4f}")
         print(f"Iteration {i+1}/{num_batches} update completed.")
         
     return model
