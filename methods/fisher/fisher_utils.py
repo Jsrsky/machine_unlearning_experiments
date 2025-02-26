@@ -108,8 +108,8 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
         print(f"Iteration {i+1}/{num_batches}: Remaining dataset size = {len(dataset_remaining)}")
         
         # Compute the average gradient and diagonal Fisher on D'
-        grad_dict = compute_gradient_on_subset(model, criterion, dataset_remaining, DEVICE, compute_batch_size)
-        fisher_diag = compute_fisher_on_subset(model, criterion, dataset_remaining, DEVICE, compute_batch_size)
+        grad_dict = compute_gradient_on_subset(model, criterion, dataset_remaining, compute_batch_size)
+        fisher_diag = compute_fisher_on_subset(model, criterion, dataset_remaining, compute_batch_size)
         
         # Update model parameters using the Newton correction and noise injection
         with torch.no_grad():
