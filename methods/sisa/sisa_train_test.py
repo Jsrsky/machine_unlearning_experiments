@@ -3,10 +3,12 @@ import json
 import numpy as np
 from pathlib import Path
 
+import torch.nn as nn
+
 from utils.train_test_metrics import train_model, test_model
 from utils.utils import save_model
 
-def sisa_train(dataloaders, num_epochs, save_models_metrics_dir, init_model_func, learning_rate=0.001):
+def sisa_train(dataloaders, num_epochs, save_models_metrics_dir, init_model_func, learning_rate=0.001, multi_gpu=False):
 
     save_path = Path(save_models_metrics_dir)
     save_path.mkdir(parents=True, exist_ok=True) # Ensure the directory exists
@@ -20,6 +22,8 @@ def sisa_train(dataloaders, num_epochs, save_models_metrics_dir, init_model_func
         
         # Initialize a new model for the shard
         model, model_name, criterion, optimizer, _ = init_model_func(learning_rate=learning_rate)
+        if multi_gpu:
+            model = nn.DataParallel(model, device_ids=[0,1])
 
         # Iterate over slices in the shard
         for slice_id, loaders in slices.items():
@@ -90,7 +94,7 @@ def sisa_test(dataloaders, saved_models_metrics_dir, init_model_func, clear_solo
     print(f"Evaluation results saved to {output_path}")
 
 
-def retrain_sisa_framework(dataloaders, affected_shards, num_epochs, save_models_metrics_dir, init_model_func, learning_rate):
+def retrain_sisa_framework(dataloaders, affected_shards, num_epochs, save_models_metrics_dir, init_model_func, learning_rate, multi_gpu=False):
     """
     Retrain the SISA framework starting from the flagged slices for affected shards.
 
@@ -109,7 +113,9 @@ def retrain_sisa_framework(dataloaders, affected_shards, num_epochs, save_models
 
         # Initialize a new model for this shard
         model, model_name, criterion, optimizer, _ = init_model_func(learning_rate=learning_rate)
-
+        if multi_gpu:
+            model = nn.DataParallel(model, device_ids=[0,1])
+            
         # Iterate over slices in the shard
         for slice_id, loaders in dataloaders[shard_id].items():
             current_slice_idx = int(slice_id.split("_")[1])
