@@ -1,7 +1,7 @@
 import math
 import json
 import torch
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from torch.utils.data import DataLoader, Subset
 
 from utils.utils import DEVICE
@@ -16,7 +16,7 @@ def compute_gradient_on_subset(model, criterion, dataset_subset, batch_size):
     total_samples = 0
 
     model.train()
-    for inputs, targets in tqdm(dataloader, desc="Computing gradients", leave=True):
+    for inputs, targets in tqdm(dataloader, desc="Computing gradients"):
         inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
         model.zero_grad()
         outputs = model(inputs)
@@ -47,7 +47,7 @@ def compute_fisher_on_subset(model, criterion, dataset_subset, batch_size):
     total_samples = 0
 
     model.eval()
-    for inputs, targets in tqdm(dataloader, desc="Computing Fisher", leave=True):
+    for inputs, targets in tqdm(dataloader, desc="Computing Fisher"):
         inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
         model.zero_grad()
         outputs = model(inputs)
