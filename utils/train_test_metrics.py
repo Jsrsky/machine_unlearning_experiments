@@ -185,9 +185,9 @@ def show_metrics(predictions_path, classes, model_name):
 
     # Metrics calculation
     accuracy = accuracy_score(true_labels, predictions)
-    precision = precision_score(true_labels, predictions, average='weighted')
-    recall = recall_score(true_labels, predictions, average='weighted')
-    f1 = f1_score(true_labels, predictions, average='weighted')
+    precision = precision_score(true_labels, predictions, average='weighted', zero_division=0)
+    recall = recall_score(true_labels, predictions, average='weighted', zero_division=0)
+    f1 = f1_score(true_labels, predictions, average='weighted', zero_division=0)
     cm = confusion_matrix(true_labels, predictions)
 
 
