@@ -20,7 +20,6 @@ def init_model_resnet50(learning_rate=0.001, fc_output = 10):
     model_name = 'ResNet50_CIFAR10'
 
     model = model.to(DEVICE)
-    model = nn.DataParallel(model, device_ids=[0, 1])
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 

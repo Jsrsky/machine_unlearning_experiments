@@ -1,9 +1,10 @@
 import math
+import json
 import torch
-from utils.utils import DEVICE
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Subset
 
+from utils.utils import DEVICE
 
 def compute_gradient_on_subset(model, criterion, dataset_subset, batch_size):
     """
@@ -65,37 +66,6 @@ def compute_fisher_on_subset(model, criterion, dataset_subset, batch_size):
         fisher_diag[name] /= total_samples
 
     return fisher_diag
-    # for name in fisher_diag:
-    #     fisher_diag[name] /= total_samples
-    # fisher_diag['_total_samples'] = total_samples
-
-    return fisher_diag
-
-def remove_from_fisher_incrementally(fisher_diag, model, criterion, dataset_removed, batch_size):
-    dataloader = DataLoader(dataset_removed, batch_size=batch_size, shuffle=False)
-    total_removed_samples = 0
-
-    model.eval()
-    for inputs, targets in dataloader:
-        inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
-        model.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-        loss.backward()
-        batch_samples = inputs.size(0)
-        total_removed_samples += batch_samples
-        for name, param in model.named_parameters():
-            if param.requires_grad and param.grad is not None:
-                fisher_diag[name] -= (param.grad.detach() ** 2) * batch_samples
-
-    total_samples_remaining = fisher_diag['_total_samples'] - total_removed_samples
-    for name in fisher_diag:
-        if name != '_total_samples':
-            fisher_diag[name] = torch.clamp(fisher_diag[name], min=1e-8)
-            fisher_diag[name] /= total_samples_remaining
-    fisher_diag['_total_samples'] = total_samples_remaining
-
-    return fisher_diag
 
 def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, sigma, deletion_batch_size, compute_batch_size, eps, max_norm):
     """
@@ -128,9 +98,6 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
     partitioned_removals = [removal_list[i * deletion_batch_size : (i + 1) * deletion_batch_size] for i in range(num_batches)]
     print(f"Total deletion samples: {len(removal_list)}; partitioned into {num_batches} mini-batches (each up to {deletion_batch_size} samples).")
 
-    # NEWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
-    # fisher_diag = compute_fisher_on_subset(model, criterion, full_dataset, compute_batch_size)
-    # NEWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     # Iterate over each deletion mini-batch
     for i, batch in enumerate(tqdm(partitioned_removals, desc="Fisher step over mini-batches")):
         # Remove the current batch of indices from current_indices
@@ -139,40 +106,12 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
         # Create a Subset corresponding to the updated dataset D' = D \ (deleted so far)
         dataset_remaining = Subset(full_dataset, updated_indices)
         print(f"Iteration {i+1}/{num_batches}: Remaining dataset size = {len(dataset_remaining)}")
-        # NEWWWWWWWWWWWWWWWWWWWWWWWWWW
-        # dataset_removed = Subset(full_dataset, batch)
-        # fisher_diag = remove_from_fisher_incrementally(fisher_diag, model, criterion, dataset_removed, compute_batch_size)
-        # NEWWWWWWWWWWWWWWWWWWWWWWWWWWW
+        
         # Compute the average gradient and diagonal Fisher on D'
         grad_dict = compute_gradient_on_subset(model, criterion, dataset_remaining, compute_batch_size)
         fisher_diag = compute_fisher_on_subset(model, criterion, dataset_remaining, compute_batch_size)
-
-
-
-        # dataset_removed = Subset(full_dataset, batch) # For DeepClean
-        # fisher_forget = compute_fisher_on_subset(model, criterion, dataset_removed, deletion_batch_size)
-        # update_masks = {}
-        # for name in fisher_forget:
-        #     ratio = (fisher_forget[name] + eps) / (fisher_diag[name] + eps)
-        #     update_masks[name] = ratio > DEEP_CLEAN_THRESHOLD
-
-
-
-
-
-
-        
         # Update model parameters using the Newton correction and noise injection
         with torch.no_grad():
-            for name in grad_dict:
-                grad = grad_dict[name]
-                norm = grad.norm(2).item()
-                grad_min = grad.min().item()
-                grad_max = grad.max().item()
-                grad_mean = grad.mean().item()
-                grad_std = grad.std().item()
-                print(f"[Raw] Param {name}: norm = {norm:.4e}, min = {grad_min:.4e}, max = {grad_max:.4e}, mean = {grad_mean:.4e}, std = {grad_std:.4e}")
-            
             # First, compute and clip gradients, and monitor norms
             total_grad_norm_before = 0.0
             total_grad_norm_after = 0.0
@@ -191,23 +130,6 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
             total_update_norm = 0.0
             for name, param in model.named_parameters():
                 if param.requires_grad:
-
-
-                    # #DeepClean
-                    # mask = update_masks.get(name, torch.zeros_like(param.data, dtype=torch.bool))
-                    # if mask.any():
-                    #     inv_fisher = (fisher_diag[name] + eps).pow(-1)
-                    #     newton_update = inv_fisher * grad_dict[name]
-    
-                    #     param.data[mask] -= newton_update[mask]
-    
-                    #     inv_fisher_quarter = (fisher_diag[name] + eps).pow(-0.25)
-                    #     noise = torch.randn_like(param.data)
-                    #     param.data[mask] += sigma * inv_fisher_quarter[mask] * noise[mask]
-                    # else:
-                    #     continue 
-
-                    
                     inv_fisher = (fisher_diag[name] + eps).pow(-1)
                     newton_update = inv_fisher * grad_dict[name]
                     total_update_norm += newton_update.norm(2).item()
@@ -221,3 +143,17 @@ def iterative_fisher_unlearn(model, criterion, full_dataset, removal_indices, si
         print(f"Iteration {i+1}/{num_batches} update completed.")
         
     return model
+
+def create_unlearning_dataloader(unlearn_file, dataset, batch_size=32):
+    
+    with open(unlearn_file, "r") as f:
+        unlearn_samples = json.load(f)
+
+    unlearn_indices = [entry["index"] for entry in unlearn_samples]
+
+    unlearn_dataset = Subset(dataset, unlearn_indices)
+
+    unlearn_loader = DataLoader(unlearn_dataset, batch_size=batch_size, shuffle=False)
+    
+    return unlearn_indices, unlearn_loader
+
