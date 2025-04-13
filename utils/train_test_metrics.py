@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 from utils.utils import save_model, DEVICE
 
-def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10, influence_sigma=None):
+def train_model(model, model_name, train_loader, val_loader, criterion, optimizer, num_epochs=10, influence_sigma=None, scheduler=None):
 
 
     best_val_accuracy = 0.0
@@ -106,6 +106,9 @@ def train_model(model, model_name, train_loader, val_loader, criterion, optimize
             best_val_accuracy = val_accuracy
             save_model(model, best_model_path)
             print(f"Epoch {epoch + 1}: New best validation accuracy: {best_val_accuracy:.4f}. Model saved to {best_model_path}.")
+
+        if scheduler is not None:
+            scheduler.step()
 
     with open(f'{model_name}_history.json', 'w') as f:
         json.dump(history, f)
